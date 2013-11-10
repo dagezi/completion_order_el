@@ -3,7 +3,12 @@
 ;;; This should work read-file-name, 
 ;;; dagezi@gmail.com (SASAKI, Takesi)
 
+(require 'cl)
+
 (defvar completion-sort-function nil)
+
+(defvar completion-sort-function-for-file
+  #'completion-order-sort-by-modtime)
 
 ;;; Override minibuffer-completion-help to customise order
 (defun minibuffer-completion-help ()
@@ -84,11 +89,25 @@
     ad-do-it))
 (ad-activate 'read-file-name)
 
+(defun completion-order-toggle ()
+  (interactive)
+  (setq completion-sort-function-for-file
+	(if completion-sort-function-for-file nil
+	  #'completion-order-sort-by-modtime))
+  (setq completion-sort-function
+	completion-sort-function-for-file)
+  (when (get-buffer "*Completions*")
+    ; TODO: refresh *completions* buffer
+    ))
+
 (defun get-modtime (file)
   (float-time (nth 5 (file-attributes file))))
 
+(define-key minibuffer-local-filename-completion-map
+  "\C-t" #'completion-order-toggle)
+
 (defun completion-order-sort-by-modtime (completions)
-  "Sort file name completion candidates by its last modification time."
+  "Sort completed file name candidates by their last modification time."
   ;; Completions has only basename. How to get directory?
   (let
       ((comps-with-modtime 
